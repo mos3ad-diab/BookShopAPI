@@ -181,14 +181,22 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             }
 
-            return RedirectToAction("Index", "Home", new { area = "Customer" });
+            return Ok(new ApiResponse<object>()
+            {
+                IsSuccess = true,
+                Message = "Login Successfully"
+            });
         }
         
         [HttpPost("Logout")]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction(nameof(Login));
+            return Ok(new ApiResponse<object>()
+            {
+                IsSuccess = true,
+                Message = "Logout Successfully"
+            });
         }
 
         [HttpPost("ForgetPasswordAsync")]
