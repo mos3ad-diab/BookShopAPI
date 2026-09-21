@@ -55,14 +55,26 @@ namespace BookShopAPI.Areas.Identity.Controllers
             }
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
-            var link = Url.Action("ConfirmEmail", "Account", new { area = "Identity", userId = user.Id, token = token }, Request.Scheme);
+            
+            var addingResult = await _userManager.AddToRoleAsync(user, CD.CUSTOMER_ROLE);
+            if (!addingResult.Succeeded)
+            {
+
+                return BadRequest(new ApiResponse<object>()
+                {
+                    IsSuccess = false,
+                    Message = "faild to add role",
+                    Errors = addingResult.Errors.Select(e => e.Description)
+
+                });
+            }
+            var link = Url.Action("ConfirmEmail", "Auth", new { area = "Identity", userId = user.Id, token = token }, Request.Scheme);
 
             await _emailSender.SendEmailAsync(
                 registerRequest.Email,
                 "Book shop Api Confirmation",
                 $"<h1> please click <a href = {link}> here </a> to confirm your account </h1>"
                 );
-            await _userManager.AddToRoleAsync(user, CD.CUSTOMER_ROLE);
             return Ok(new ApiResponse<object>()
             {
                 IsSuccess = true,
@@ -88,7 +100,7 @@ namespace BookShopAPI.Areas.Identity.Controllers
             return Ok(new ApiResponse<object>()
             {
                 IsSuccess = true,
-                Message = "Account Created Successfuly, please confirm your email"
+                Message = "Email confirmed successfully"
             });
         }
 
@@ -101,20 +113,16 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             if (user is null)
             {
-                ModelState.AddModelError("", "User not found");
-                
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
                     Message = "User not found",
 
                 });
-
             }
 
             if (await _userManager.IsEmailConfirmedAsync(user))
             {
-                ModelState.AddModelError("", "This email is already confirmed.");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
@@ -125,18 +133,18 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
-            var link = Url.Action("ConfirmEmail", "Account", new { area = "Identity", userId = user.Id, token = token }, Request.Scheme);
+            var link = Url.Action("ConfirmEmail", "Auth", new { area = "Identity", userId = user.Id, token = token }, Request.Scheme);
 
             await _emailSender.SendEmailAsync(
                 user.Email,
-                "Falcon Cinema Confirmation",
+                "Book shop Confirmation",
                 $"<h1> please click <a href = {link}> here </a> to confirm your account </h1>"
                 );
 
             return Ok(new ApiResponse<object>()
             {
                 IsSuccess = true,
-                Message = "Account confirmed Successfully"
+                Message = "Confirmation email sent successfully"
             });
 
         }
@@ -149,7 +157,6 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             if (user is null)
             {
-                ModelState.AddModelError("", "Invalid user name or password");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
@@ -206,13 +213,11 @@ namespace BookShopAPI.Areas.Identity.Controllers
                 await _userManager.FindByNameAsync(forgetPassworRequest.UserNameOrEmail);
             if (user is null)
             {
-                ModelState.AddModelError("", "Invalid user name or Email");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
                     Message = "Invalid user name or Email",
-                    
-
+                
                 });
             }
 
@@ -241,7 +246,6 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             if (user is null)
             {
-                ModelState.AddModelError("", "Invalid user");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
@@ -256,7 +260,6 @@ namespace BookShopAPI.Areas.Identity.Controllers
             var applicationUserOtp = otps.OrderByDescending(e => e.CreatedAt).FirstOrDefault();
             if (applicationUserOtp == null || applicationUserOtp.OTP != confirmOtpRequest.OTP)
             {
-                ModelState.AddModelError("", "Invalid / expired otp");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
@@ -267,11 +270,11 @@ namespace BookShopAPI.Areas.Identity.Controllers
             applicationUserOtp.IsValid = false;
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             await _applicationUserOTPrepository.CommitAsync();
-            return Ok(new ApiResponse<string>()
+            return Ok(new ApiResponse<object>()
             {
                 IsSuccess = true,
                 Message = "OTP confimred successfully",
-                Data = token
+                Data = new {token , UserId =  user.Id}
                 
                 
             });
@@ -285,7 +288,6 @@ namespace BookShopAPI.Areas.Identity.Controllers
 
             if (user is null)
             {
-                ModelState.AddModelError("", "Invalid user");
                 return BadRequest(new ApiResponse<object>()
                 {
                     IsSuccess = false,
@@ -294,7 +296,19 @@ namespace BookShopAPI.Areas.Identity.Controllers
                 });
 
             }
-            await _userManager.ResetPasswordAsync(user, resetPasswordRequest.Token, resetPasswordRequest.Password);
+            var result = await _userManager.ResetPasswordAsync(user, resetPasswordRequest.Token, resetPasswordRequest.Password);
+
+            if (!result.Succeeded)
+            {
+
+                return BadRequest(new ApiResponse<object>()
+                {
+                    IsSuccess = false,
+                    Message = "faild to reset your password",
+                    Errors = result.Errors.Select(e => e.Description)
+
+                });
+            }
 
             return Ok(new ApiResponse<object>()
             {
