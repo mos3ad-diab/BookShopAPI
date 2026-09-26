@@ -4,6 +4,7 @@ using BookShopAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BookShopAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926132352_add_sold_to_books")]
+    partial class add_sold_to_books
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,9 +169,6 @@ namespace BookShopAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Amount")
-                        .HasColumnType("int");
-
                     b.Property<int>("AuthorId")
                         .HasColumnType("int");
 
@@ -212,7 +212,6 @@ namespace BookShopAPI.Migrations
                         new
                         {
                             Id = 1,
-                            Amount = 0,
                             AuthorId = 1,
                             CategoryId = 1,
                             Discount = 2.00m,
@@ -226,7 +225,6 @@ namespace BookShopAPI.Migrations
                         new
                         {
                             Id = 2,
-                            Amount = 0,
                             AuthorId = 2,
                             CategoryId = 2,
                             Discount = 3.50m,
@@ -240,7 +238,6 @@ namespace BookShopAPI.Migrations
                         new
                         {
                             Id = 3,
-                            Amount = 0,
                             AuthorId = 3,
                             CategoryId = 2,
                             Discount = 0.00m,

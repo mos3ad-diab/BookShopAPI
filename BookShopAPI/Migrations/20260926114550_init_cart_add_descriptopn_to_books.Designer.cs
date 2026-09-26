@@ -4,6 +4,7 @@ using BookShopAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BookShopAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926114550_init_cart_add_descriptopn_to_books")]
+    partial class init_cart_add_descriptopn_to_books
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,9 +169,6 @@ namespace BookShopAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Amount")
-                        .HasColumnType("int");
-
                     b.Property<int>("AuthorId")
                         .HasColumnType("int");
 
@@ -194,9 +194,6 @@ namespace BookShopAPI.Migrations
                     b.Property<int?>("Review")
                         .HasColumnType("int");
 
-                    b.Property<int>("Sold")
-                        .HasColumnType("int");
-
                     b.Property<DateOnly>("Year")
                         .HasColumnType("date");
 
@@ -212,7 +209,6 @@ namespace BookShopAPI.Migrations
                         new
                         {
                             Id = 1,
-                            Amount = 0,
                             AuthorId = 1,
                             CategoryId = 1,
                             Discount = 2.00m,
@@ -220,13 +216,11 @@ namespace BookShopAPI.Migrations
                             Price = 15.99m,
                             Rate = 5,
                             Review = 320,
-                            Sold = 0,
                             Year = new DateOnly(1949, 6, 8)
                         },
                         new
                         {
                             Id = 2,
-                            Amount = 0,
                             AuthorId = 2,
                             CategoryId = 2,
                             Discount = 3.50m,
@@ -234,13 +228,11 @@ namespace BookShopAPI.Migrations
                             Price = 22.50m,
                             Rate = 5,
                             Review = 450,
-                            Sold = 0,
                             Year = new DateOnly(1997, 6, 26)
                         },
                         new
                         {
                             Id = 3,
-                            Amount = 0,
                             AuthorId = 3,
                             CategoryId = 2,
                             Discount = 0.00m,
@@ -248,7 +240,6 @@ namespace BookShopAPI.Migrations
                             Price = 18.00m,
                             Rate = 4,
                             Review = 210,
-                            Sold = 0,
                             Year = new DateOnly(1937, 9, 21)
                         });
                 });

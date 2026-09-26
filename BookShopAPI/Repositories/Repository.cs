@@ -4,6 +4,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Linq.Expressions;
+enum order
+{
+    up,
+    down
+}
 
 namespace BookShopAPI.Repositories
 {
@@ -38,10 +43,6 @@ namespace BookShopAPI.Repositories
             )
         {
             var entities = _dbSet.AsQueryable();
-            if (filter != null)
-            {
-                entities = entities.Where(filter);
-            }
             if (includes != null)
             {
                 foreach (var include in includes)
@@ -49,6 +50,11 @@ namespace BookShopAPI.Repositories
                     entities = entities.Include(include);
                 }
             }
+            if (filter != null)
+            {
+                entities = entities.Where(filter);
+            }
+            
             if (!isTracked)
             {
                 entities = entities.AsNoTracking();
@@ -56,14 +62,34 @@ namespace BookShopAPI.Repositories
             
             return  entities;
         }
+
+       
+
         public async Task<IEnumerable<T>> GetAllAsync(
             Expression<Func<T,bool>>? filter = null,
             Expression<Func<T, object>>[]? includes = null,
-            string contain = "",
-            bool isTracked = true
+            bool isTracked = true,
+            int order = 0,
+            Expression<Func<T, object>>? ordering = null,
+            int top = 0
             )
         {
             var entities = Query(filter, includes,isTracked);
+            if(ordering != null)
+            {
+                if(order == 0 )
+                {
+                    entities = entities.OrderBy(ordering);
+                }
+                if(order == 1)
+                {
+                    entities = entities.OrderByDescending(ordering);
+                }
+            }
+            if(top > 0)
+            {
+                entities = entities.Skip(0).Take(top);
+            }
             return await entities.ToListAsync();
         }
 
@@ -72,10 +98,23 @@ namespace BookShopAPI.Repositories
             Expression<Func<T, bool>>? filter = null,
             Expression<Func<T, object>>[]? includes = null,
             
-            bool isTracked = true
+            bool isTracked = true,
+            int order = 0,
+            Expression<Func<T, object>>? ordering = null
             )
         {
             var entities = Query(filter, includes, isTracked);
+            if (ordering != null)
+            {
+                if (order == 0)
+                {
+                    entities = entities.OrderBy(ordering);
+                }
+                if (order == 1)
+                {
+                    entities = entities.OrderByDescending(ordering);
+                }
+            }
             return await entities.FirstOrDefaultAsync();
         }
 

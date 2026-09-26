@@ -25,8 +25,10 @@ namespace BookShopAPI.Repositories
         Task<IEnumerable<T>> GetAllAsync(
             Expression<Func<T, bool>>? filter = null,
             Expression<Func<T, object>>[]? includes = null,
-            string contain = "",
-            bool isTracked = true
+            bool isTracked = true,
+            int order = 0,
+            Expression<Func<T, object>>? ordering = null,
+            int top = 0
             );
 
 
@@ -35,7 +37,9 @@ namespace BookShopAPI.Repositories
             Expression<Func<T, bool>>? filter = null,
             Expression<Func<T, object>>[]? includes = null,
 
-            bool isTracked = true
+            bool isTracked = true,
+            int order = 0,
+            Expression<Func<T, object>>? ordering = null
             );
 
 
