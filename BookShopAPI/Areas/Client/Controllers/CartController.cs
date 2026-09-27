@@ -17,13 +17,15 @@ namespace BookShopAPI.Areas.Client.Controllers
     {
         private readonly IRepository<Cart> _cartRepository;
         private readonly IRepository<Book> _bookRepository;
+        private readonly IRepository<Promotion> _promotionRepository;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public CartController(IRepository<Cart> cartRepository, IRepository<Book> bookRepository, UserManager<ApplicationUser> userManager)
+        public CartController(IRepository<Cart> cartRepository, IRepository<Book> bookRepository, UserManager<ApplicationUser> userManager, IRepository<Promotion> promotionRepository)
         {
             _cartRepository = cartRepository;
             _bookRepository = bookRepository;
             _userManager = userManager;
+            _promotionRepository = promotionRepository;
         }
 
         [HttpGet("GetAll")]
@@ -199,6 +201,53 @@ namespace BookShopAPI.Areas.Client.Controllers
             {
                 IsSuccess = false,
                 Message = "Minimum count is 1. Use remove to delete this item."
+            });
+        }
+
+        [HttpPost("ApplyPromotion")]
+        public async Task<IActionResult> ApplyPromotion(PromoRequest promoRequest)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Invalid user",
+            });
+
+            var cart = await _cartRepository.GetOneAsync(e => e.BookId == promoRequest.BookId && e.ApplicationUserId == user.Id);
+            if(cart == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "you dont have this book in your cart",
+            });
+            var book = await _bookRepository.GetOneAsync(e => e.Id == promoRequest.BookId);
+            var promo = await _promotionRepository.GetOneAsync(
+                e=>e.BookId == promoRequest.BookId
+                && e.Code == promoRequest.Code
+                && e.MaxUsage >=1
+                && e.IsValid == true
+                && e.ValidTo > DateTime.UtcNow
+                );
+
+            if(promo == null) return BadRequest(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Invalid / expired promotion code"
+            });
+
+            cart.Price = book.Price - (book.Price * ((Decimal)promo.Discount /100));
+            promo.MaxUsage--;
+            if(promo.MaxUsage==0 || promo.ValidTo < DateTime.UtcNow)
+            {
+                promo.IsValid = false;
+            }
+
+            await _cartRepository.CommitAsync();
+
+            return Ok(new ApiResponse<object>()
+            {
+                IsSuccess = true,
+                Message = "Promotion applied successfully"
             });
         }
 

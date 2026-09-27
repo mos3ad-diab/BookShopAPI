@@ -14,6 +14,7 @@ namespace BookShopAPI
         {
             services.AddScoped<IRepository<Book>, Repository<Book>>();
             services.AddScoped<IRepository<Favorit>, Repository<Favorit>>();
+            services.AddScoped<IRepository<Promotion>, Repository<Promotion>>();
             services.AddScoped<IRepository<Cart>, Repository<Cart>>();
             services.AddScoped<IRepository<Category>, Repository<Category>>();
             services.AddScoped<IRepository<Author>, Repository<Author>>();
