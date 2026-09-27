@@ -13,6 +13,7 @@ namespace BookShopAPI
         public static void RegisterConfig(IServiceCollection services)
         {
             services.AddScoped<IRepository<Book>, Repository<Book>>();
+            services.AddScoped<IRepository<Favorit>, Repository<Favorit>>();
             services.AddScoped<IRepository<Cart>, Repository<Cart>>();
             services.AddScoped<IRepository<Category>, Repository<Category>>();
             services.AddScoped<IRepository<Author>, Repository<Author>>();

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace BookShopAPI.Areas.Client.Controllers
 {
@@ -31,19 +30,24 @@ namespace BookShopAPI.Areas.Client.Controllers
         public async Task<IActionResult> GetAll()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound(new ApiResponse<object>()
+            if (user == null) return Unauthorized(new ApiResponse<object>()
             {
                 IsSuccess = false,
-                Message = "No content",
+                Message = "User is unauthorized",
             });
 
             var carts = await _cartRepository.GetAllAsync(e => e.ApplicationUserId == user.Id, includes: [m => m.Book]);
+            if (carts == null || !carts.Any()) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "No cart items found",
+            });
+
             return Ok(new ApiResponse<IEnumerable<Cart>>()
             {
                 IsSuccess = true,
-                Message = "Successfull",
+                Message = "Data returned successfully",
                 Data = carts
-             
             });
         }
 
@@ -51,24 +55,48 @@ namespace BookShopAPI.Areas.Client.Controllers
         public async Task<IActionResult> AddToCart(AddToCartRequest addToCartRequest)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound(new ApiResponse<object>()
+            if (user == null) return Unauthorized(new ApiResponse<object>()
             {
                 IsSuccess = false,
-                Message = "invalid user",
+                Message = "User is unauthorized",
             });
 
-
             var book = await _bookRepository.GetOneAsync(e => e.Id == addToCartRequest.bookId);
+            if (book == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Invalid book",
+            });
+
             var cartInDb = await _cartRepository.GetOneAsync(e => e.BookId == addToCartRequest.bookId && e.ApplicationUserId == user.Id);
 
             if (cartInDb != null)
             {
+                if (cartInDb.Count + addToCartRequest.count > book.Amount)
+                {
+                    return BadRequest(new ApiResponse<object>()
+                    {
+                        IsSuccess = false,
+                        Message = $"Cannot add more items. Available stock is {book.Amount}"
+                    });
+                }
+
                 cartInDb.Count += addToCartRequest.count;
                 await _cartRepository.CommitAsync();
+
                 return Ok(new ApiResponse<object>()
                 {
                     IsSuccess = true,
-                    Message = "Book is already existed, Count added successfully"
+                    Message = "Book already exists, count updated successfully"
+                });
+            }
+
+            if (addToCartRequest.count > book.Amount)
+            {
+                return BadRequest(new ApiResponse<object>()
+                {
+                    IsSuccess = false,
+                    Message = $"Requested count exceeds available stock ({book.Amount})"
                 });
             }
 
@@ -86,21 +114,37 @@ namespace BookShopAPI.Areas.Client.Controllers
             return Ok(new ApiResponse<object>()
             {
                 IsSuccess = true,
-                Message = "Book addded to cart successfully"
+                Message = "Book added to cart successfully"
             });
         }
+
         [HttpPut("Increment")]
         public async Task<IActionResult> Increment(int bookId)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound();
-            var book = await _bookRepository.GetOneAsync(e => e.Id == bookId);
-            if (book == null) return NotFound();
-
-            var carts = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
-            if (carts.Count < book.Amount)
+            if (user == null) return Unauthorized(new ApiResponse<object>()
             {
-                carts.Count++;
+                IsSuccess = false,
+                Message = "User is unauthorized",
+            });
+
+            var book = await _bookRepository.GetOneAsync(e => e.Id == bookId);
+            if (book == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Invalid book",
+            });
+
+            var cart = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
+            if (cart == null) return NotFound(new ApiResponse<object>
+            {
+                IsSuccess = false,
+                Message = "Item not found in cart"
+            });
+
+            if (cart.Count < book.Amount)
+            {
+                cart.Count++;
                 await _cartRepository.CommitAsync();
                 return Ok(new ApiResponse<object>()
                 {
@@ -108,42 +152,81 @@ namespace BookShopAPI.Areas.Client.Controllers
                     Message = "Count increased successfully"
                 });
             }
-            return Ok(new ApiResponse<object>()
+
+            return BadRequest(new ApiResponse<object>()
             {
-                IsSuccess = true,
-                Message = "Count increased successfully"
+                IsSuccess = false,
+                Message = $"Cannot increase count. Stock limit ({book.Amount}) reached"
             });
         }
+
         [HttpPut("Decrement")]
         public async Task<IActionResult> Decrement(int bookId)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound();
-            var book = await _bookRepository.GetOneAsync(e => e.Id == bookId);
-            if (book == null) return NotFound();
-
-            var carts = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
-            if (carts.Count > 1)
+            if (user == null) return Unauthorized(new ApiResponse<object>()
             {
-                carts.Count--;
+                IsSuccess = false,
+                Message = "User is unauthorized",
+            });
+
+            var book = await _bookRepository.GetOneAsync(e => e.Id == bookId);
+            if (book == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Invalid book",
+            });
+
+            var cart = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
+            if (cart == null) return NotFound(new ApiResponse<object>
+            {
+                IsSuccess = false,
+                Message = "Item not found in cart"
+            });
+
+            if (cart.Count > 1)
+            {
+                cart.Count--;
                 await _cartRepository.CommitAsync();
-                return RedirectToAction(nameof(Index));
+                return Ok(new ApiResponse<object>()
+                {
+                    IsSuccess = true,
+                    Message = "Count decremented successfully"
+                });
             }
-            return RedirectToAction(nameof(Index));
+
+            return BadRequest(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Minimum count is 1. Use remove to delete this item."
+            });
         }
 
+        [HttpDelete("Remove")]
         public async Task<IActionResult> Remove(int bookId)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound();
-            var book = await _bookRepository.GetOneAsync(e => e.Id == bookId);
-            if (book == null) return NotFound();
+            if (user == null) return Unauthorized(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "User is unauthorized",
+            });
 
-            var carts = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
+            var cart = await _cartRepository.GetOneAsync(e => e.ApplicationUserId == user.Id && e.BookId == bookId);
+            if (cart == null) return NotFound(new ApiResponse<object>()
+            {
+                IsSuccess = false,
+                Message = "Item not found in cart"
+            });
 
-            _cartRepository.Delete(carts);
+            _cartRepository.Delete(cart);
             await _cartRepository.CommitAsync();
-            return RedirectToAction(nameof(Index));
+
+            return Ok(new ApiResponse<object>()
+            {
+                IsSuccess = true,
+                Message = "Item removed from cart successfully"
+            });
         }
     }
 }
